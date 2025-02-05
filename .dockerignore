@@ -2,35 +2,25 @@
 taskfastapienv/
 venv/
 env/
-.env
-.env.local
+
+# Environment files
+.env*
 .env.development
-.env.development.local
-.env.test.local
-.env.production
-.env.production.local
+!.env.example
 
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
+
+# Git
+.git/
+.gitignore
 
 # IDE
 .idea/
@@ -42,12 +32,20 @@ wheels/
 *.log
 logs/
 
-# FastAPI specific
+# Test and coverage
 .pytest_cache/
-coverage.xml
 .coverage
 htmlcov/
+coverage.xml
 
 # Database
 *.db
 tasks.db
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Documentation
+README.md
+docs/

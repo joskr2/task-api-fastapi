@@ -1,0 +1,38 @@
+services:
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    restart: always
+    profiles:
+      - dev
+      - prod
+    environment:
+      - ENV=${ENV:-development}
+    env_file:
+      - .env.${ENV:-development}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db-prod:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-taskdb}
+    ports:
+      - "5432:5432"
+    profiles:
+      - prod
+
+volumes:
+  postgres_data:

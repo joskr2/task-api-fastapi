@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
@@ -8,15 +9,29 @@ from jose import JWTError, jwt
 from .database import get_db, engine, Base
 from .schemas import UserCreate, User, Token, Task, TaskCreate, TaskUpdate
 from .models import User as UserModel, Task as TaskModel
+from .oauth2_config import settings
 from .security import (
     verify_password, get_password_hash, create_access_token,
-    oauth2_scheme, SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+    oauth2_scheme
 )
+from .oauth2 import router as oauth2_router
 
 # Crear las tablas en la base de datos
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Task Manager API")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS.split(","),
+    allow_credentials=True,
+    allow_methods=settings.CORS_METHODS.split(","),
+    allow_headers=settings.CORS_HEADERS.split(","),
+)
+
+# Include OAuth routes
+app.include_router(oauth2_router, prefix="/auth", tags=["OAuth2"])
 
 # Función de utilidad para obtener el usuario actual
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -26,7 +41,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -73,7 +88,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
