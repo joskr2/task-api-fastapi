@@ -101,4 +101,3 @@ gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
 
 ## 📝 Licencia
 Este proyecto está bajo la Licencia MIT
-```
