@@ -35,7 +35,7 @@ ENV= docker compose --profile prod up --build
 ### 🔧 Instalación Local
 1. Clonar el repositorio
 ```bash
-git clone <url-del-repositorio>
+git clone https://github.com/joskr2/task-api-fastapi
 ```
 
 2. Crear entorno virtual
