@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, PrimaryKeyConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -19,16 +19,18 @@ class User(Base):
     tasks = relationship("Task", back_populates="owner")
 
 class Task(Base):
-    """Modelo de tarea en la base de datos"""
     __tablename__ = "tasks"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer)
+    owner_id = Column(Integer, ForeignKey("users.id"))
     name = Column(String, index=True)
     description = Column(String, nullable=True)
     completed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    owner_id = Column(Integer, ForeignKey("users.id"))
     
-    # Relación con el usuario
     owner = relationship("User", back_populates="tasks")
+
+    __table_args__ = (
+        PrimaryKeyConstraint('id', 'owner_id'),
+    )

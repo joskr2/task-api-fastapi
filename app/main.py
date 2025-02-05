@@ -39,7 +39,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     return user
 
 # Endpoints de autenticación
-@app.post("/register", response_model=User)
+@app.post("/register", response_model=User, tags=["Users"])
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     """Registra un nuevo usuario"""
     # Verificar si el usuario ya existe
@@ -62,7 +62,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
-@app.post("/token", response_model=Token)
+@app.post("/token", response_model=Token, tags=["Users"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Login de usuario y generación de token"""
     user = db.query(UserModel).filter(UserModel.username == form_data.username).first()
@@ -80,12 +80,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     return {"access_token": access_token, "token_type": "bearer"}
 
 # Endpoints de tareas
-@app.get("/tasks", response_model=List[Task])
+@app.get("/tasks", response_model=List[Task], tags=["Tasks"])
 def get_tasks(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     """Obtiene todas las tareas del usuario actual"""
     return db.query(TaskModel).filter(TaskModel.owner_id == current_user.id).all()
 
-@app.get("/tasks/{task_id}", response_model=Task)
+@app.get("/tasks/{task_id}", response_model=Task, tags=["Tasks"])
 def get_task(
     task_id: int,
     current_user: UserModel = Depends(get_current_user),
@@ -100,20 +100,39 @@ def get_task(
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
-@app.post("/tasks", response_model=Task)
+@app.post("/tasks", response_model=Task, tags=["Tasks"])
 def create_task(
     task: TaskCreate,
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Crea una nueva tarea para el usuario actual"""
-    db_task = TaskModel(**task.dict(), owner_id=current_user.id)
-    db.add(db_task)
-    db.commit()
-    db.refresh(db_task)
-    return db_task
+    # Get the highest task ID for this user
+    last_task = db.query(TaskModel).filter(
+        TaskModel.owner_id == current_user.id
+    ).order_by(TaskModel.id.desc()).first()
+    
+    # If user has no tasks, start with ID 1, otherwise increment the last ID
+    new_task_id = 1 if last_task is None else last_task.id + 1
+    
+    db_task = TaskModel(
+        id=new_task_id,
+        name=task.name,
+        description=task.description,
+        completed=task.completed,
+        owner_id=current_user.id
+    )
+    
+    try:
+        db.add(db_task)
+        db.commit()
+        db.refresh(db_task)
+        return db_task
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Error creating task")
 
-@app.put("/tasks/{task_id}", response_model=Task)
+@app.put("/tasks/{task_id}", response_model=Task, tags=["Tasks"])
 def update_task(
     task_id: int,
     task_update: TaskUpdate,
@@ -136,7 +155,27 @@ def update_task(
     db.refresh(db_task)
     return db_task
 
-@app.delete("/tasks/{task_id}")
+@app.patch("/tasks/{task_id}/complete", response_model=Task, tags=["Tasks"])
+def update_task_status(
+    task_id: int,
+    completed: bool,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Actualiza el estado de completado de una tarea"""
+    db_task = db.query(TaskModel).filter(
+        TaskModel.id == task_id,
+        TaskModel.owner_id == current_user.id
+    ).first()
+    if db_task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    db_task.completed = completed
+    db.commit()
+    db.refresh(db_task)
+    return db_task    
+
+@app.delete("/tasks/{task_id}", tags=["Tasks"])
 def delete_task(
     task_id: int,
     current_user: UserModel = Depends(get_current_user),
