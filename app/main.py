@@ -76,7 +76,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     return db_user
-
+ 
 @app.post("/token", response_model=Token, tags=["Users"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Login de usuario y generación de token"""
@@ -93,6 +93,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/me", response_model=User, tags=["Users"])
+async def get_current_user_info(current_user: UserModel = Depends(get_current_user)):
+    """Obtiene la información del usuario actual"""
+    return current_user   
 
 # Endpoints de tareas
 @app.get("/tasks", response_model=List[Task], tags=["Tasks"])
