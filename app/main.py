@@ -24,7 +24,7 @@ app = FastAPI(title="Task Manager API")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS.split(","),
+    allow_origins=['*'],
     allow_credentials=True,
     allow_methods=settings.CORS_METHODS.split(","),
     allow_headers=settings.CORS_HEADERS.split(","),

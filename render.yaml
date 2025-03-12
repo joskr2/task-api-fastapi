@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: taskfastapi
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app.main:app -k uvicorn.workers.UvicornWorker
+    envVars:
+      - key: ENV
+        value: production
